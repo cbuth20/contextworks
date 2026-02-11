@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --contextworks-black: #111827;
+  --contextworks-graphite: #FFFFFF;
+  --contextworks-gold: #D4AF37;
+  --contextworks-gold-soft: #E6C766;
+  --contextworks-silver: #111827;
+  --contextworks-silver-muted: #6B7280;
+  --contextworks-steel: #E5E7EB;
+  --contextworks-bg: #F9FAFB;
+}
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--contextworks-silver);
+    background: var(--contextworks-bg);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-gradient-gold {
+    background: linear-gradient(135deg, var(--contextworks-gold) 0%, var(--contextworks-gold-soft) 100%);
+  }
+
+  .border-gradient {
+    border-image: linear-gradient(135deg, var(--contextworks-gold), var(--contextworks-gold-soft)) 1;
+  }
+}
