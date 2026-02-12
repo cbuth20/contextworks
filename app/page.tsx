@@ -20,11 +20,6 @@ const services = [
     description: 'Deep dive into market trends, competitive landscapes, and emerging opportunities.',
     icon: Search,
   },
-  {
-    title: 'Document Management',
-    description: 'Secure, organized document workflows with digital signing and client portals.',
-    icon: FileText,
-  },
 ]
 
 const approach = [

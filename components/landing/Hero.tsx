@@ -6,10 +6,6 @@ export function Hero() {
   return (
     <section className="relative pt-32 pb-20 px-4">
       <div className="relative max-w-3xl mx-auto text-center">
-        <p className="text-sm text-muted-foreground mb-4">
-          Strategic Consulting & Document Management
-        </p>
-
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
           Transform your business with strategic context.
         </h1>
