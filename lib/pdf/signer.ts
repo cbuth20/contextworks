@@ -1,73 +1,60 @@
-import { PDFDocument } from 'pdf-lib'
+import { PDFDocument, rgb } from 'pdf-lib'
 
-interface SignaturePosition {
-  x: number
-  y: number
-  width: number
-  height: number
-  page: number
+interface SignPdfParams {
+  pdfBytes: Uint8Array
+  signatureImageBytes: Uint8Array
+  signerName: string
+  signerEmail: string
+  pageNumber?: number
+  x?: number
+  y?: number
 }
 
-/**
- * Adds a signature image to a PDF document
- */
-export async function signPDF(
-  pdfBytes: ArrayBuffer,
-  signatureDataUrl: string,
-  position: SignaturePosition
-): Promise<Uint8Array> {
-  try {
-    // Load the PDF
-    const pdfDoc = await PDFDocument.load(pdfBytes)
+export async function signPdf({
+  pdfBytes,
+  signatureImageBytes,
+  signerName,
+  signerEmail,
+  pageNumber = 0,
+  x,
+  y,
+}: SignPdfParams): Promise<Uint8Array> {
+  const pdfDoc = await PDFDocument.load(pdfBytes)
+  const pages = pdfDoc.getPages()
+  const page = pages[pageNumber] || pages[pages.length - 1]
+  const { width, height } = page.getSize()
 
-    // Convert data URL to bytes
-    const signatureImageBytes = await fetch(signatureDataUrl).then(res => res.arrayBuffer())
+  // Embed signature image
+  const signatureImage = await pdfDoc.embedPng(signatureImageBytes)
+  const sigDims = signatureImage.scale(0.5)
+  const sigWidth = Math.min(sigDims.width, 200)
+  const sigHeight = (sigWidth / sigDims.width) * sigDims.height
 
-    // Embed the signature image
-    const signatureImage = await pdfDoc.embedPng(signatureImageBytes)
+  // Position: default to bottom-right area
+  const sigX = x ?? width - sigWidth - 60
+  const sigY = y ?? 80
 
-    // Get the page
-    const pages = pdfDoc.getPages()
-    const page = pages[position.page - 1]
+  page.drawImage(signatureImage, {
+    x: sigX,
+    y: sigY,
+    width: sigWidth,
+    height: sigHeight,
+  })
 
-    if (!page) {
-      throw new Error('Invalid page number')
-    }
+  // Add signature info text below
+  const fontSize = 8
+  page.drawText(`Signed by: ${signerName} (${signerEmail})`, {
+    x: sigX,
+    y: sigY - 14,
+    size: fontSize,
+    color: rgb(0.4, 0.4, 0.4),
+  })
+  page.drawText(`Date: ${new Date().toISOString().split('T')[0]}`, {
+    x: sigX,
+    y: sigY - 24,
+    size: fontSize,
+    color: rgb(0.4, 0.4, 0.4),
+  })
 
-    // Draw the signature on the page
-    page.drawImage(signatureImage, {
-      x: position.x,
-      y: position.y,
-      width: position.width,
-      height: position.height,
-    })
-
-    // Save the PDF
-    const signedPdfBytes = await pdfDoc.save()
-    return signedPdfBytes
-  } catch (error) {
-    console.error('Error signing PDF:', error)
-    throw error
-  }
-}
-
-/**
- * Helper to convert signature position from screen coordinates to PDF coordinates
- */
-export function convertToPDFCoordinates(
-  clickX: number,
-  clickY: number,
-  pageWidth: number,
-  pageHeight: number,
-  signatureWidth: number = 150,
-  signatureHeight: number = 50
-): SignaturePosition {
-  // PDF coordinates start from bottom-left, screen coordinates from top-left
-  return {
-    x: clickX,
-    y: pageHeight - clickY - signatureHeight, // Flip Y coordinate
-    width: signatureWidth,
-    height: signatureHeight,
-    page: 1, // This will be set by the caller
-  }
+  return pdfDoc.save()
 }

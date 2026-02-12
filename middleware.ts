@@ -2,95 +2,67 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
-    request: {
-      headers: request.headers,
-    },
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
+        getAll() {
+          return request.cookies.getAll()
         },
-        set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
-          response.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
+        setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          supabaseResponse = NextResponse.next({ request })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
         },
       },
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // /sign/* is public (token-based access, no auth needed)
-  if (request.nextUrl.pathname.startsWith('/sign')) {
-    return response
+  const pathname = request.nextUrl.pathname
+
+  // Public routes - always accessible
+  if (
+    pathname === '/' ||
+    pathname === '/about' ||
+    pathname === '/login' ||
+    pathname.startsWith('/share/') ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/documents/by-token') ||
+    pathname.startsWith('/api/documents/sign') ||
+    pathname.match(/\.(svg|png|ico|jpg|jpeg|gif|css|js)$/)
+  ) {
+    return supabaseResponse
   }
 
-  // Protected admin routes
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!user) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
-
-    // Check if user is admin
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-    const adminList = (adminEmail || '').split(',').map(e => e.trim())
-    if (!adminList.includes(user.email || '')) {
-      return NextResponse.redirect(new URL('/', request.url))
-    }
+  // Protected routes - require auth
+  if (!user) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated admin from home to dashboard
-  if (request.nextUrl.pathname === '/' && user) {
-    const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-    const adminList = (adminEmail || '').split(',').map(e => e.trim())
-    if (adminList.includes(user.email || '')) {
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
+  // Admin routes - check admin email
+  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
+  if (pathname.startsWith('/dashboard') && !adminEmails.includes(user.email?.toLowerCase() || '')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/'
+    return NextResponse.redirect(url)
   }
 
-  return response
+  return supabaseResponse
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

@@ -1,106 +1,76 @@
--- Enable Row Level Security
+-- Enable RLS on all tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE channels ENABLE ROW LEVEL SECURITY;
+ALTER TABLE folders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE document_events ENABLE ROW LEVEL SECURITY;
 
--- Helper function to check if user is admin
+-- Helper: check if current user is admin via JWT email (no profiles dependency)
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
-  -- Check if the authenticated user's email matches the admin email
-  -- Note: In production, this would be configured via environment variable
-  -- For now, this will be checked in the application layer
-  RETURN auth.jwt() ->> 'email' = current_setting('app.admin_email', true);
-EXCEPTION
-  WHEN OTHERS THEN
-    RETURN false;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Helper function to get client_id from authenticated user's email
-CREATE OR REPLACE FUNCTION get_client_id_from_auth()
-RETURNS UUID AS $$
-DECLARE
-  client_uuid UUID;
-BEGIN
-  SELECT id INTO client_uuid
-  FROM clients
-  WHERE email = auth.jwt() ->> 'email';
-
-  RETURN client_uuid;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- CLIENTS TABLE POLICIES
-
--- Admin can do everything with clients
-CREATE POLICY "Admin can view all clients"
-  ON clients FOR SELECT
-  USING (is_admin());
-
-CREATE POLICY "Admin can insert clients"
-  ON clients FOR INSERT
-  WITH CHECK (is_admin());
-
-CREATE POLICY "Admin can update clients"
-  ON clients FOR UPDATE
-  USING (is_admin());
-
-CREATE POLICY "Admin can delete clients"
-  ON clients FOR DELETE
-  USING (is_admin());
-
--- Clients can view their own record
-CREATE POLICY "Clients can view own record"
-  ON clients FOR SELECT
-  USING (email = auth.jwt() ->> 'email');
-
--- DOCUMENTS TABLE POLICIES
-
--- Admin can do everything with documents
-CREATE POLICY "Admin can view all documents"
-  ON documents FOR SELECT
-  USING (is_admin());
-
-CREATE POLICY "Admin can insert documents"
-  ON documents FOR INSERT
-  WITH CHECK (is_admin());
-
-CREATE POLICY "Admin can update documents"
-  ON documents FOR UPDATE
-  USING (is_admin());
-
-CREATE POLICY "Admin can delete documents"
-  ON documents FOR DELETE
-  USING (is_admin());
-
--- Clients can view their own documents
-CREATE POLICY "Clients can view own documents"
-  ON documents FOR SELECT
-  USING (client_id = get_client_id_from_auth());
-
--- DOCUMENT_EVENTS TABLE POLICIES
-
--- Admin can view all events
-CREATE POLICY "Admin can view all events"
-  ON document_events FOR SELECT
-  USING (is_admin());
-
--- Admin can insert events
-CREATE POLICY "Admin can insert events"
-  ON document_events FOR INSERT
-  WITH CHECK (is_admin());
-
--- Clients can view events for their documents
-CREATE POLICY "Clients can view own document events"
-  ON document_events FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM documents
-      WHERE documents.id = document_events.document_id
-      AND documents.client_id = get_client_id_from_auth()
-    )
+  RETURN (
+    auth.jwt() ->> 'email' IN ('connor@contextworks.co', 'patrick@contextworks.co')
   );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Service role bypasses RLS (for webhooks)
--- This is automatic with Supabase service_role key
+-- Profiles: users can read own, admins can read all
+DROP POLICY IF EXISTS "Users can view own profile" ON profiles;
+DROP POLICY IF EXISTS "Admins can view all profiles" ON profiles;
+DROP POLICY IF EXISTS "Admins can update profiles" ON profiles;
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Admins can view all profiles" ON profiles FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can update profiles" ON profiles FOR UPDATE USING (is_admin());
+
+-- Clients: admin-only CRUD
+DROP POLICY IF EXISTS "Admins can view clients" ON clients;
+DROP POLICY IF EXISTS "Admins can create clients" ON clients;
+DROP POLICY IF EXISTS "Admins can update clients" ON clients;
+DROP POLICY IF EXISTS "Admins can delete clients" ON clients;
+CREATE POLICY "Admins can view clients" ON clients FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can create clients" ON clients FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins can update clients" ON clients FOR UPDATE USING (is_admin());
+CREATE POLICY "Admins can delete clients" ON clients FOR DELETE USING (is_admin());
+
+-- Channels: admin-only CRUD
+DROP POLICY IF EXISTS "Admins can view channels" ON channels;
+DROP POLICY IF EXISTS "Admins can create channels" ON channels;
+DROP POLICY IF EXISTS "Admins can update channels" ON channels;
+DROP POLICY IF EXISTS "Admins can delete channels" ON channels;
+CREATE POLICY "Admins can view channels" ON channels FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can create channels" ON channels FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins can update channels" ON channels FOR UPDATE USING (is_admin());
+CREATE POLICY "Admins can delete channels" ON channels FOR DELETE USING (is_admin());
+
+-- Folders: admin-only CRUD
+DROP POLICY IF EXISTS "Admins can view folders" ON folders;
+DROP POLICY IF EXISTS "Admins can create folders" ON folders;
+DROP POLICY IF EXISTS "Admins can update folders" ON folders;
+DROP POLICY IF EXISTS "Admins can delete folders" ON folders;
+CREATE POLICY "Admins can view folders" ON folders FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can create folders" ON folders FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins can update folders" ON folders FOR UPDATE USING (is_admin());
+CREATE POLICY "Admins can delete folders" ON folders FOR DELETE USING (is_admin());
+
+-- Documents: admin CRUD + public SELECT by share_token
+DROP POLICY IF EXISTS "Admins can view documents" ON documents;
+DROP POLICY IF EXISTS "Public can view shared documents" ON documents;
+DROP POLICY IF EXISTS "Admins can create documents" ON documents;
+DROP POLICY IF EXISTS "Admins can update documents" ON documents;
+DROP POLICY IF EXISTS "Admins can delete documents" ON documents;
+CREATE POLICY "Admins can view documents" ON documents FOR SELECT USING (is_admin());
+CREATE POLICY "Public can view shared documents" ON documents FOR SELECT USING (
+  share_token IS NOT NULL
+  AND (share_token_expires_at IS NULL OR share_token_expires_at > NOW())
+);
+CREATE POLICY "Admins can create documents" ON documents FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "Admins can update documents" ON documents FOR UPDATE USING (is_admin());
+CREATE POLICY "Admins can delete documents" ON documents FOR DELETE USING (is_admin());
+
+-- Document events: admin-only read + insert
+DROP POLICY IF EXISTS "Admins can view events" ON document_events;
+DROP POLICY IF EXISTS "Admins can create events" ON document_events;
+CREATE POLICY "Admins can view events" ON document_events FOR SELECT USING (is_admin());
+CREATE POLICY "Admins can create events" ON document_events FOR INSERT WITH CHECK (is_admin());

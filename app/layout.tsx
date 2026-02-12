@@ -1,18 +1,12 @@
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-
-const inter = Inter({ subsets: ["latin"] })
+import type { Metadata } from 'next'
+import { Toaster } from '@/components/ui/sonner'
+import './globals.css'
 
 export const metadata: Metadata = {
-  title: "ContextWorks Client Portal",
-  description: "Secure document signing and management portal",
-  keywords: ["document signing", "esignature", "client portal", "ContextWorks"],
-  authors: [{ name: "ContextWorks LLC" }],
+  title: 'ContextWorks',
+  description: 'Strategic consulting and document management platform',
   icons: {
     icon: '/favicon.svg',
-    shortcut: '/favicon.svg',
-    apple: '/favicon.svg',
   },
 }
 
@@ -23,7 +17,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className="min-h-screen font-sans">
+        {children}
+        <Toaster />
+      </body>
     </html>
   )
 }

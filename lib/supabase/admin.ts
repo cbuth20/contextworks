@@ -1,22 +1,15 @@
-// Helper to check if the current user is an admin
-export function isAdmin(email: string | undefined): boolean {
-  if (!email) return false
+const ADMIN_EMAILS = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
 
-  // Support comma-separated list of admin emails
-  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
-  const adminList = adminEmails.split(',').map(e => e.trim())
-
-  return adminList.includes(email)
+export function isAdminEmail(email: string): boolean {
+  return ADMIN_EMAILS.includes(email.toLowerCase())
 }
 
-// Helper to get all admin emails
-export function getAdminEmails(): string[] {
-  const adminEmails = process.env.NEXT_PUBLIC_ADMIN_EMAIL || ''
-  return adminEmails.split(',').map(e => e.trim()).filter(e => e.length > 0)
-}
+export async function requireAdmin(supabase: ReturnType<typeof import('./server').createServerSupabaseClient>) {
+  const { data: { user }, error } = await supabase.auth.getUser()
 
-// Helper to get primary admin email (first in list)
-export function getAdminEmail(): string {
-  const emails = getAdminEmails()
-  return emails[0] || ''
+  if (error || !user || !isAdminEmail(user.email || '')) {
+    return null
+  }
+
+  return user
 }

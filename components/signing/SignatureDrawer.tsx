@@ -1,68 +1,47 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef } from 'react'
 import SignatureCanvas from 'react-signature-canvas'
 import { Button } from '@/components/ui/button'
 
 interface SignatureDrawerProps {
-  onSave: (signatureDataUrl: string) => void
-  onCancel?: () => void
+  onSave: (dataUrl: string) => void
+  onCancel: () => void
 }
 
 export function SignatureDrawer({ onSave, onCancel }: SignatureDrawerProps) {
-  const sigPadRef = useRef<SignatureCanvas>(null)
-  const [isEmpty, setIsEmpty] = useState(true)
-
-  const handleClear = () => {
-    sigPadRef.current?.clear()
-    setIsEmpty(true)
-  }
+  const sigRef = useRef<SignatureCanvas>(null)
 
   const handleSave = () => {
-    if (sigPadRef.current && !isEmpty) {
-      const dataUrl = sigPadRef.current.toDataURL('image/png')
-      onSave(dataUrl)
-    }
-  }
-
-  const handleBegin = () => {
-    setIsEmpty(false)
+    if (sigRef.current?.isEmpty()) return
+    const dataUrl = sigRef.current?.toDataURL('image/png')
+    if (dataUrl) onSave(dataUrl)
   }
 
   return (
-    <div className="space-y-4">
-      <div className="border-2 border-dashed border-contextworks-steel rounded-lg bg-white overflow-hidden">
+    <div className="space-y-3">
+      <p className="text-sm text-muted-foreground">Draw your signature below:</p>
+      <div className="bg-white rounded-md overflow-hidden border">
         <SignatureCanvas
-          ref={sigPadRef}
+          ref={sigRef}
           canvasProps={{
-            className: 'w-full cursor-crosshair',
-            style: { height: '200px', width: '100%' },
+            className: 'w-full',
+            width: 500,
+            height: 200,
+            style: { width: '100%', height: '200px' },
           }}
-          penColor="#111827"
-          onBegin={handleBegin}
+          penColor="black"
+          backgroundColor="white"
         />
       </div>
-
-      <p className="text-sm text-contextworks-silver-muted">
-        Draw your signature using your mouse or finger on touch devices
-      </p>
-
-      <div className="flex space-x-3">
-        <Button onClick={handleClear} variant="outline">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="sm" onClick={() => sigRef.current?.clear()}>
           Clear
         </Button>
-        {onCancel && (
-          <Button onClick={onCancel} variant="outline">
-            Cancel
-          </Button>
-        )}
-        <Button
-          onClick={handleSave}
-          disabled={isEmpty}
-          variant="gold"
-        >
-          Use This Signature
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
+          <Button size="sm" onClick={handleSave}>Apply Signature</Button>
+        </div>
       </div>
     </div>
   )

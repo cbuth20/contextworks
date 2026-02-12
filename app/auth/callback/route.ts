@@ -1,31 +1,38 @@
-import { createClient } from '@/lib/supabase/server'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const origin = requestUrl.origin
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  const redirect = searchParams.get('redirect') || '/dashboard'
 
   if (code) {
-    const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (!error) {
-      // Get user to determine redirect
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      // Redirect admin to admin dashboard, clients to documents
-      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL
-      if (user?.email === adminEmail) {
-        return NextResponse.redirect(`${origin}/admin`)
-      } else {
-        return NextResponse.redirect(`${origin}/documents`)
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {}
+          },
+        },
       }
+    )
+
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(`${origin}${redirect}`)
     }
   }
 
-  // Return to home page if something went wrong
-  return NextResponse.redirect(`${origin}/`)
+  return NextResponse.redirect(`${origin}/login?error=auth`)
 }

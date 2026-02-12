@@ -1,204 +1,212 @@
 'use client'
 
-import { useState } from 'react'
-import { PDFViewer } from '@/components/client/PDFViewer'
-import { SignatureDrawer } from './SignatureDrawer'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { CheckCircle, Pen, MousePointer } from 'lucide-react'
+import { SignatureDrawer } from '@/components/signing/SignatureDrawer'
+import { SignedConfirmation } from '@/components/signing/SignedConfirmation'
+import { Loader2, AlertTriangle, Pen } from 'lucide-react'
 
-type SigningStep = 'idle' | 'drawing' | 'placing' | 'confirming' | 'signed'
-
-interface SigningPageProps {
-  documentId: string
-  title: string
-  pdfUrl: string
-  token: string
-  onComplete: () => void
+interface DocumentData {
+  id: string
+  name: string
+  fileUrl: string
+  status: string
+  signerName?: string
+  signerEmail?: string
+  signedAt?: string
 }
 
-export function SigningPage({ documentId, title, pdfUrl, token, onComplete }: SigningPageProps) {
-  const [step, setStep] = useState<SigningStep>('idle')
+export function SigningPage({ token }: { token: string }) {
+  const [doc, setDoc] = useState<DocumentData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [signerName, setSignerName] = useState('')
+  const [signerEmail, setSignerEmail] = useState('')
+  const [showSignature, setShowSignature] = useState(false)
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [signaturePosition, setSignaturePosition] = useState<{ x: number; y: number } | null>(null)
-  const [isSigning, setIsSigning] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [signed, setSigned] = useState(false)
 
-  const handleSignatureReady = (dataUrl: string) => {
-    setSignatureDataUrl(dataUrl)
-    setStep('placing')
-  }
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(`/api/documents/by-token?token=${token}`)
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Failed to load document')
+        }
+        const data = await res.json()
+        setDoc(data)
+        if (data.signerEmail) setSignerEmail(data.signerEmail)
+        if (data.signerName) setSignerName(data.signerName)
+        if (data.status === 'signed') setSigned(true)
+      } catch (err) {
+        setError((err as Error).message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [token])
 
-  const handlePlaceSignature = (x: number, y: number) => {
-    setSignaturePosition({ x, y })
-    setStep('confirming')
-  }
-
-  const handleConfirmSign = async () => {
-    if (!signatureDataUrl || !signaturePosition) return
-
-    setIsSigning(true)
+  const handleSign = async () => {
+    if (!signatureDataUrl || !signerName || !signerEmail) return
+    setSubmitting(true)
 
     try {
-      // Fetch the original PDF
-      const pdfResponse = await fetch(pdfUrl)
-      const pdfBlob = await pdfResponse.blob()
-
-      // Send to API for signing
-      const formData = new FormData()
-      formData.append('pdf', pdfBlob)
-      formData.append('signature', signatureDataUrl)
-      formData.append('x', signaturePosition.x.toString())
-      formData.append('y', signaturePosition.y.toString())
-      formData.append('page', currentPage.toString())
-      formData.append('token', token)
-      formData.append('documentId', documentId)
-
-      const response = await fetch('/api/sign-pdf', {
+      const res = await fetch('/api/documents/sign', {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, signerName, signerEmail, signatureDataUrl }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Failed to sign PDF')
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.error || 'Signing failed')
       }
 
-      setStep('signed')
-      onComplete()
-    } catch (error: any) {
-      console.error('Error signing PDF:', error)
-      alert(`Failed to sign document: ${error.message}. Please try again.`)
-      setStep('placing')
+      setSigned(true)
+    } catch (err) {
+      setError((err as Error).message)
     } finally {
-      setIsSigning(false)
+      setSubmitting(false)
     }
   }
 
-  const handleRedraw = () => {
-    setSignatureDataUrl(null)
-    setSignaturePosition(null)
-    setStep('drawing')
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-6 w-6 animate-spin mx-auto mb-3 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading document...</p>
+        </div>
+      </div>
+    )
   }
 
-  return (
-    <div className="space-y-6">
-      {/* Document Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-contextworks-black">{title}</h1>
-        <p className="text-contextworks-silver-muted mt-1">Please review and sign this document</p>
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md">
+          <AlertTriangle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+          <h1 className="text-xl font-bold tracking-tight mb-2">Unable to Load Document</h1>
+          <p className="text-sm text-muted-foreground">{error}</p>
+        </div>
       </div>
+    )
+  }
 
-      {/* Step Indicator */}
-      <Card>
-        <CardContent className="pt-6">
-          {step === 'idle' && (
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <Pen className="mr-2 h-5 w-5 text-contextworks-gold" />
-                  Step 1: Review the document, then draw your signature
-                </h3>
-                <p className="text-sm text-contextworks-silver-muted mt-1">
-                  Review the document below, then click the button to start signing.
-                </p>
-              </div>
-              <Button variant="gold" onClick={() => setStep('drawing')}>
-                <Pen className="mr-2 h-4 w-4" />
-                Draw Signature
-              </Button>
-            </div>
-          )}
+  if (signed) return <SignedConfirmation signerName={signerName} />
 
-          {step === 'drawing' && (
-            <div>
-              <h3 className="font-medium flex items-center mb-4">
-                <Pen className="mr-2 h-5 w-5 text-contextworks-gold" />
-                Step 1: Draw your signature
-              </h3>
-              <SignatureDrawer
-                onSave={handleSignatureReady}
-                onCancel={() => setStep('idle')}
-              />
-            </div>
-          )}
+  if (!doc) return null
 
-          {step === 'placing' && (
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <MousePointer className="mr-2 h-5 w-5 text-contextworks-gold" />
-                  Step 2: Click on the document to place your signature
-                </h3>
-                {signatureDataUrl && (
-                  <div className="flex items-center space-x-3 mt-2">
-                    <div className="border border-contextworks-steel rounded p-2 bg-white inline-block">
-                      <img src={signatureDataUrl} alt="Your signature" className="h-10" />
-                    </div>
-                    <Button variant="ghost" size="sm" onClick={handleRedraw}>
-                      Redraw
-                    </Button>
+  return (
+    <div className="min-h-screen">
+      {/* Header */}
+      <header className="border-b px-4 py-3">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
+          <div>
+            <p className="font-semibold text-sm">{doc.name}</p>
+            <p className="text-xs text-muted-foreground">Review and sign this document</p>
+          </div>
+          <span className="text-sm font-medium tracking-tight">ContextWorks</span>
+        </div>
+      </header>
+
+      <div className="max-w-5xl mx-auto p-4 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* PDF Preview */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="p-0">
+                {doc.fileUrl ? (
+                  <iframe src={doc.fileUrl} className="w-full h-[600px] lg:h-[700px] rounded-xl" title="Document Preview" />
+                ) : (
+                  <div className="h-[600px] flex items-center justify-center text-muted-foreground">
+                    Preview unavailable
                   </div>
                 )}
-              </div>
-            </div>
-          )}
+              </CardContent>
+            </Card>
+          </div>
 
-          {step === 'confirming' && (
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium flex items-center">
-                  <CheckCircle className="mr-2 h-5 w-5 text-green-500" />
-                  Step 3: Confirm and sign
-                </h3>
-                <p className="text-sm text-contextworks-silver-muted mt-1">
-                  Your signature has been placed. Click confirm to complete signing.
-                </p>
-              </div>
-              <div className="flex space-x-3">
-                <Button variant="outline" onClick={() => { setSignaturePosition(null); setStep('placing') }}>
-                  Reposition
+          {/* Signing Panel */}
+          <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sign Document</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signer-name">Full Name</Label>
+                  <Input
+                    id="signer-name"
+                    value={signerName}
+                    onChange={(e) => setSignerName(e.target.value)}
+                    placeholder="Your full name"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signer-email">Email</Label>
+                  <Input
+                    id="signer-email"
+                    type="email"
+                    value={signerEmail}
+                    onChange={(e) => setSignerEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    required
+                  />
+                </div>
+
+                {signatureDataUrl ? (
+                  <div className="space-y-1">
+                    <Label>Signature</Label>
+                    <div className="bg-white rounded-md p-2 border">
+                      <img src={signatureDataUrl} alt="Your signature" className="max-h-20 mx-auto" />
+                    </div>
+                    <button
+                      onClick={() => { setSignatureDataUrl(null); setShowSignature(true) }}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      Redo signature
+                    </button>
+                  </div>
+                ) : showSignature ? (
+                  <SignatureDrawer
+                    onSave={(dataUrl) => { setSignatureDataUrl(dataUrl); setShowSignature(false) }}
+                    onCancel={() => setShowSignature(false)}
+                  />
+                ) : (
+                  <Button variant="outline" className="w-full" onClick={() => setShowSignature(true)}>
+                    <Pen className="h-4 w-4 mr-2" />
+                    Add Signature
+                  </Button>
+                )}
+
+                <Button
+                  className="w-full"
+                  disabled={!signerName || !signerEmail || !signatureDataUrl || submitting}
+                  onClick={handleSign}
+                >
+                  {submitting ? (
+                    <><Loader2 className="h-4 w-4 animate-spin mr-2" />Signing...</>
+                  ) : (
+                    'Submit Signature'
+                  )}
                 </Button>
-                <Button variant="gold" onClick={handleConfirmSign} disabled={isSigning}>
-                  {isSigning ? 'Signing...' : 'Confirm & Sign'}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
 
-      {/* PDF Viewer */}
-      {step !== 'drawing' && (
-        <Card>
-          <CardContent className="pt-6">
-            <div
-              className={step === 'placing' ? 'cursor-crosshair' : ''}
-              onClick={(e) => {
-                if (step === 'placing') {
-                  const rect = e.currentTarget.getBoundingClientRect()
-                  const x = e.clientX - rect.left
-                  const y = e.clientY - rect.top
-                  handlePlaceSignature(x, y)
-                }
-              }}
-            >
-              <PDFViewer
-                fileUrl={pdfUrl}
-                selectedPage={currentPage}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-
-            {isSigning && (
-              <div className="mt-4 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-contextworks-gold mr-3"></div>
-                <span className="text-contextworks-silver-muted">Signing document...</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+            <p className="text-xs text-muted-foreground text-center leading-relaxed">
+              By signing, you agree that your electronic signature is the legal equivalent of your handwritten signature.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

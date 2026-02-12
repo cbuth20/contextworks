@@ -1,95 +1,61 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
-interface SendSigningEmailParams {
+interface SendShareEmailParams {
   to: string
-  clientName: string
-  documentTitle: string
+  documentName: string
   shareUrl: string
+  senderName?: string
 }
 
-export async function sendSigningEmail({ to, clientName, documentTitle, shareUrl }: SendSigningEmailParams) {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('RESEND_API_KEY not configured, skipping email')
-    return
+export async function sendShareEmail({ to, documentName, shareUrl, senderName }: SendShareEmailParams) {
+  if (!resend) {
+    console.log('[Email] Resend not configured. Share URL:', shareUrl)
+    return { success: true, mock: true }
   }
 
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@contextworks.com'
-
-  await resend.emails.send({
-    from: `ContextWorks <${fromEmail}>`,
+  const { error } = await resend.emails.send({
+    from: 'ContextWorks <noreply@contextworks.co>',
     to,
-    subject: `Action Required: Please sign "${documentTitle}"`,
+    subject: `Document for your review: ${documentName}`,
     html: `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
       </head>
-      <body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #F9FAFB;">
-        <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #F9FAFB; padding: 40px 20px;">
-          <tr>
-            <td align="center">
-              <table width="600" cellpadding="0" cellspacing="0" style="background-color: #FFFFFF; border-radius: 12px; border: 1px solid #E5E7EB; overflow: hidden;">
-                <!-- Header -->
-                <tr>
-                  <td style="padding: 32px 40px 24px; border-bottom: 1px solid #E5E7EB;">
-                    <strong style="font-size: 20px; color: #111827;">ContextWorks</strong>
-                  </td>
-                </tr>
-
-                <!-- Body -->
-                <tr>
-                  <td style="padding: 40px;">
-                    <h1 style="margin: 0 0 16px; font-size: 24px; font-weight: 600; color: #111827;">
-                      Document Ready for Signing
-                    </h1>
-                    <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6; color: #6B7280;">
-                      Hi ${clientName},
-                    </p>
-                    <p style="margin: 0 0 32px; font-size: 16px; line-height: 1.6; color: #6B7280;">
-                      A document titled <strong style="color: #111827;">&ldquo;${documentTitle}&rdquo;</strong> has been shared with you for signing. Please review and sign it at your earliest convenience.
-                    </p>
-
-                    <!-- CTA Button -->
-                    <table cellpadding="0" cellspacing="0" style="margin: 0 0 32px;">
-                      <tr>
-                        <td style="background: linear-gradient(135deg, #D4AF37 0%, #E6C766 100%); border-radius: 8px;">
-                          <a href="${shareUrl}" style="display: inline-block; padding: 14px 32px; font-size: 16px; font-weight: 600; color: #FFFFFF; text-decoration: none;">
-                            Review &amp; Sign Document
-                          </a>
-                        </td>
-                      </tr>
-                    </table>
-
-                    <p style="margin: 0; font-size: 14px; color: #9CA3AF;">
-                      Or copy and paste this link into your browser:
-                    </p>
-                    <p style="margin: 4px 0 0; font-size: 14px; color: #D4AF37; word-break: break-all;">
-                      ${shareUrl}
-                    </p>
-                  </td>
-                </tr>
-
-                <!-- Footer -->
-                <tr>
-                  <td style="padding: 24px 40px; background-color: #F9FAFB; border-top: 1px solid #E5E7EB;">
-                    <p style="margin: 0; font-size: 12px; color: #9CA3AF; line-height: 1.5;">
-                      This link expires in 30 days. If you have any questions, please contact the sender directly.
-                    </p>
-                    <p style="margin: 8px 0 0; font-size: 12px; color: #9CA3AF;">
-                      Sent via ContextWorks
-                    </p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
+      <body style="margin:0;padding:0;background-color:#ffffff;font-family:Inter,system-ui,sans-serif;">
+        <div style="max-width:560px;margin:0 auto;padding:40px 20px;">
+          <div style="border:1px solid #e5e5e5;border-radius:8px;padding:40px;text-align:center;">
+            <div style="margin-bottom:24px;">
+              <span style="color:#09090B;font-weight:600;font-size:18px;">ContextWorks</span>
+            </div>
+            <h1 style="color:#09090B;font-size:20px;font-weight:600;margin:0 0 8px 0;">Document Ready for Review</h1>
+            <p style="color:#737373;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+              ${senderName ? `${senderName} has` : 'You have been'} shared a document that requires your review and signature.
+            </p>
+            <div style="background-color:#f5f5f5;border-radius:6px;padding:16px;margin-bottom:24px;">
+              <p style="color:#737373;font-size:12px;margin:0 0 4px 0;">DOCUMENT</p>
+              <p style="color:#09090B;font-size:16px;font-weight:500;margin:0;">${documentName}</p>
+            </div>
+            <a href="${shareUrl}" style="display:inline-block;background-color:#18181B;color:#FAFAFA;font-weight:500;font-size:14px;padding:10px 24px;border-radius:6px;text-decoration:none;">
+              Review & Sign Document
+            </a>
+            <p style="color:#a3a3a3;font-size:12px;margin-top:24px;line-height:1.5;">
+              This link will expire in 30 days. If you have questions, please contact your ContextWorks representative.
+            </p>
+          </div>
+          <p style="color:#a3a3a3;font-size:11px;text-align:center;margin-top:16px;">
+            &copy; ContextWorks. All rights reserved.
+          </p>
+        </div>
       </body>
       </html>
     `,
   })
+
+  if (error) throw error
+  return { success: true }
 }

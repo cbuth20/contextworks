@@ -1,49 +1,71 @@
-export type DocumentStatus = "draft" | "sent" | "viewed" | "signed" | "archived"
-
 export interface Profile {
   id: string
   email: string
   full_name: string | null
-  role: 'admin'
+  role: 'admin' | 'user'
   created_at: string
-  updated_at: string
 }
 
 export interface Client {
   id: string
-  email: string
-  full_name: string
-  company_name?: string
+  name: string
+  email: string | null
+  company: string | null
+  phone: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }
 
-export interface Document {
+export interface Channel {
   id: string
-  title: string
-  client_id: string
-  status: DocumentStatus
-  original_file_path?: string
-  signed_file_path?: string
-  dropbox_sign_request_id?: string
-  signing_url?: string
-  share_token?: string
-  share_token_expires_at?: string
-  shared_at?: string
-  client_email?: string
-  client_name?: string
-  sent_at?: string
-  viewed_at?: string
-  signed_at?: string
-  archived_at?: string
+  name: string
+  description: string | null
+  client_id: string | null
+  created_by: string
   created_at: string
   updated_at: string
+  client?: Client | null
+}
+
+export interface Folder {
+  id: string
+  name: string
+  channel_id: string
+  parent_id: string | null
+  created_at: string
+}
+
+export type DocumentStatus = 'draft' | 'sent' | 'viewed' | 'signed' | 'expired'
+
+export interface Document {
+  id: string
+  name: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  channel_id: string
+  folder_id: string | null
+  status: DocumentStatus
+  share_token: string | null
+  share_token_expires_at: string | null
+  shared_at: string | null
+  signed_at: string | null
+  signed_file_path: string | null
+  signer_name: string | null
+  signer_email: string | null
+  uploaded_by: string
+  created_at: string
+  updated_at: string
+  channel?: Channel
+  folder?: Folder
 }
 
 export interface DocumentEvent {
   id: string
   document_id: string
-  event_type: string
-  payload_json: Record<string, any>
+  event_type: 'uploaded' | 'shared' | 'viewed' | 'signed' | 'expired' | 'downloaded'
+  actor_email: string | null
+  metadata: Record<string, unknown> | null
   created_at: string
 }
