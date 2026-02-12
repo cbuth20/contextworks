@@ -16,7 +16,7 @@ export async function sendShareEmail({ to, documentName, shareUrl, senderName }:
   }
 
   const { error } = await resend.emails.send({
-    from: 'ContextWorks <noreply@contextworks.co>',
+    from: 'ContextWorks <onboarding@resend.dev>',
     to,
     subject: `Document for your review: ${documentName}`,
     html: `

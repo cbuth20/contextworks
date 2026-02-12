@@ -53,6 +53,7 @@ export function UploadDocumentDialog({ open, onClose, onUploaded, channelId, fol
       const res = await fetch('/api/documents/upload', {
         method: 'POST',
         body: formData,
+        credentials: 'same-origin',
       })
 
       if (!res.ok) {
