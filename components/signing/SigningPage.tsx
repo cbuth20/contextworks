@@ -112,7 +112,7 @@ export function SigningPage({ token }: { token: string }) {
             <p className="font-semibold text-sm">{doc.name}</p>
             <p className="text-xs text-muted-foreground">Review and sign this document</p>
           </div>
-          <span className="text-sm font-medium tracking-tight">ContextWorks</span>
+          <span className="text-sm font-medium tracking-tight">Context<span className="text-brand">Works</span></span>
         </div>
       </header>
 

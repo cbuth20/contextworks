@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { Logo } from '@/components/brand/Logo'
 import { Menu, X } from 'lucide-react'
 
 export function Navbar() {
@@ -12,8 +13,8 @@ export function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-14">
-          <Link href="/" className="text-lg font-semibold tracking-tight">
-            ContextWorks
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Logo />
           </Link>
 
           <div className="hidden md:flex items-center gap-6">

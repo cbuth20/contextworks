@@ -14,7 +14,7 @@ export function SignedConfirmation({ signerName }: { signerName?: string }) {
         </p>
         <div className="mt-8 pt-6 border-t">
           <span className="text-sm text-muted-foreground">
-            Powered by <span className="font-medium text-foreground">ContextWorks</span>
+            Powered by <span className="font-medium text-foreground">Context<span className="text-brand">Works</span></span>
           </span>
         </div>
       </div>

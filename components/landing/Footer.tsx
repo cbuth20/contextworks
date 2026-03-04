@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Separator } from '@/components/ui/separator'
+import { Logo } from '@/components/brand/Logo'
 
 export function Footer() {
   return (
@@ -7,8 +8,8 @@ export function Footer() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div>
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              ContextWorks
+            <Link href="/" className="hover:opacity-80 transition-opacity inline-block">
+              <Logo />
             </Link>
             <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
               Strategic consulting and secure document management for modern businesses.

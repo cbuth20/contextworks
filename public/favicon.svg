@@ -1,4 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#09090B"/>
-  <text x="16" y="22" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-weight="700" font-size="18" fill="#FAFAFA">C</text>
+  <rect width="32" height="32" rx="6" fill="#0A0A0A"/>
+  <!-- Left bracket (lime) -->
+  <rect x="5" y="5" width="3" height="22" rx="1" fill="#C8F55A"/>
+  <rect x="5" y="5" width="10" height="3" rx="1" fill="#C8F55A"/>
+  <rect x="5" y="24" width="10" height="3" rx="1" fill="#C8F55A"/>
+  <!-- Right bracket (off-white) -->
+  <rect x="24" y="5" width="3" height="22" rx="1" fill="#F5F2EC"/>
+  <rect x="17" y="5" width="10" height="3" rx="1" fill="#F5F2EC"/>
+  <rect x="17" y="24" width="10" height="3" rx="1" fill="#F5F2EC"/>
+  <!-- Nodes -->
+  <circle cx="16" cy="11" r="2.5" fill="#C8F55A"/>
+  <rect x="15" y="13.5" width="2" height="7" rx="1" fill="#C8F55A" opacity="0.3"/>
+  <circle cx="16" cy="23" r="2.5" fill="#C8F55A"/>
+  <circle cx="16" cy="16.5" r="1.8" fill="#F5F2EC" opacity="0.5"/>
 </svg>

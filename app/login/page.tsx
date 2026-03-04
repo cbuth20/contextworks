@@ -1,14 +1,15 @@
 import { LoginForm } from '@/components/auth/LoginForm'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Logo } from '@/components/brand/Logo'
 import Link from 'next/link'
 
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-6">
-          <Link href="/" className="text-xl font-semibold tracking-tight">
-            ContextWorks
+        <div className="flex justify-center mb-6">
+          <Link href="/" className="hover:opacity-80 transition-opacity">
+            <Logo />
           </Link>
         </div>
 

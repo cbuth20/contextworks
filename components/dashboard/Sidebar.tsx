@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Logo } from '@/components/brand/Logo'
 import { LayoutDashboard, Hash, LogOut } from 'lucide-react'
 
 const navItems = [
@@ -20,8 +21,8 @@ export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-64 border-r bg-card flex flex-col z-40">
       <div className="p-6">
-        <Link href="/dashboard" className="text-lg font-semibold tracking-tight">
-          ContextWorks
+        <Link href="/dashboard" className="hover:opacity-80 transition-opacity">
+          <Logo />
         </Link>
       </div>
 
