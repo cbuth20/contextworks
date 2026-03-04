@@ -52,14 +52,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Admin routes - check admin email
-  const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAIL || '').split(',').map(e => e.trim().toLowerCase())
-  if (pathname.startsWith('/dashboard') && !adminEmails.includes(user.email?.toLowerCase() || '')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
   return supabaseResponse
 }
 
