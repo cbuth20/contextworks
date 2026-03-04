@@ -23,8 +23,8 @@ export default function AboutPage() {
                 <h2 className="text-xl font-semibold mb-4">Who We Are</h2>
                 <div className="space-y-3 text-muted-foreground leading-relaxed text-sm">
                   <p>
-                    ContextWorks is a strategic consulting firm founded by Connor and Patrick, two partners
-                    who believe that the best business decisions come from understanding the full picture.
+                    ContextWorks is a strategic consulting firm founded by Connor,
+                    who believes that the best business decisions come from understanding the full picture.
                     We combine analytical rigor with real-world experience to help businesses navigate
                     complexity and achieve sustainable growth.
                   </p>
@@ -69,20 +69,6 @@ export default function AboutPage() {
                     Brings deep expertise in strategic planning and business development. Focused on
                     helping clients identify and capitalize on growth opportunities through data-driven
                     decision making.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-8">
-                  <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <span className="font-semibold text-sm">P</span>
-                  </div>
-                  <h3 className="text-lg font-semibold">Patrick</h3>
-                  <p className="text-sm text-muted-foreground">Co-Founder & Partner</p>
-                  <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-                    Specializes in operational excellence and organizational transformation. Passionate
-                    about building efficient systems and processes that scale with growing businesses.
                   </p>
                 </CardContent>
               </Card>
