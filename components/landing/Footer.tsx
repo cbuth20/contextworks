@@ -35,7 +35,6 @@ export function Footer() {
             <h4 className="text-sm font-medium mb-4">Contact</h4>
             <div className="space-y-2 text-sm text-muted-foreground">
               <p>connor@contextworks.co</p>
-              <p>patrick@contextworks.co</p>
             </div>
           </div>
         </div>
